@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="ax-headers — one-line machine-readable headers that cut AI context bloat by 30%" width="100%" />
+</p>
+
 <div align="center">
   <h1>ax-headers</h1>
   <p><strong>One-line machine-readable headers that cut AI context bloat by 30 %.</strong></p>
