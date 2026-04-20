@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# pre-commit hook — verify AX-1 (presence) and AX-3 (tag allowlist) on staged .py files.
+# Soft-warn by default. Set AX_STRICT=1 to block.
+#
+# Install:
+#   cp pre-commit-ax .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
+
+set -euo pipefail
+
+# Project-specific allowlist — customize for your project.
+ALLOWED_TAGS="CORE PIPE CONN DOMAIN INFRA MEM PROMPT TEST MIGR SCRIPT UTIL SEC LLM IO ENTRY DAEMON MCP GATE"
+
+STRICT="${AX_STRICT:-0}"
+STAGED_PY="$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.py$' || true)"
+
+if [[ -z "$STAGED_PY" ]]; then
+    exit 0
+fi
+
+WARN_COUNT=0
+FAIL_COUNT=0
+
+while IFS= read -r f; do
+    [[ -z "$f" || ! -f "$f" ]] && continue
+
+    # Exemption: `# noqa: AX` in first 5 lines
+    if head -n 5 "$f" | grep -q "# noqa: AX"; then
+        continue
+    fi
+
+    # Exemption: empty file
+    if [[ ! -s "$f" ]]; then
+        continue
+    fi
+
+    # Exemption: __init__.py with only imports + whitespace + comments
+    if [[ "$(basename "$f")" == "__init__.py" ]]; then
+        if ! grep -qE '^(def |class )' "$f"; then
+            continue
+        fi
+    fi
+
+    first_line=$(head -n 1 "$f")
+
+    # AX-1 — presence
+    if ! [[ "$first_line" =~ ^\#\ AX:\ ([A-Z][A-Z_]+)\ \|\ SUM:\ .+\ \|\ SIG:\ [^[:space:]]+ ]]; then
+        echo "[AX-1] MISSING header: $f" >&2
+        ((WARN_COUNT++))
+        if [[ "$STRICT" == "1" ]]; then ((FAIL_COUNT++)); fi
+        continue
+    fi
+
+    tag="${BASH_REMATCH[1]}"
+
+    # AX-3 — tag allowlist
+    if ! echo " $ALLOWED_TAGS " | grep -q " $tag "; then
+        echo "[AX-3] UNKNOWN tag '$tag' in $f" >&2
+        ((FAIL_COUNT++))  # AX-3 is FAIL regardless of strict mode
+    fi
+
+done <<< "$STAGED_PY"
+
+if [[ $WARN_COUNT -gt 0 || $FAIL_COUNT -gt 0 ]]; then
+    echo "" >&2
+    echo "ax-headers: $WARN_COUNT warning(s), $FAIL_COUNT fail(s)" >&2
+fi
+
+if [[ $FAIL_COUNT -gt 0 ]]; then
+    echo "Commit blocked. Set AX_STRICT=0 to downgrade warnings only (fails still block)." >&2
+    exit 1
+fi
+
+exit 0
