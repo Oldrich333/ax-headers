@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Waypoint</h1>
+  <h1>ax-headers</h1>
   <p><strong>One-line machine-readable headers that cut AI context bloat by 30 %.</strong></p>
   <p>
     <a href="#install"><img src="https://img.shields.io/badge/Python-convention-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
@@ -12,27 +12,31 @@
 
 **Your AI assistant is flying blind.** Every time it needs to understand your project, it burns thousands of tokens reading file bodies just to figure out what the files are for.
 
+## What you get
+
+- **One line on top of every `.py`**: `# AX: TAG | SUM: one-line summary | SIG: version-tag`
+- **Grep-friendly architecture** — `grep -l '^# AX: PIPE'` lists every pipeline; `grep -l '^# AX: CONN'` every external connector. Your system's shape is inspectable with a shell one-liner.
+- **Behaviour-version signal** — bump the `SIG` field on meaningful change; downstream consumers grep `SIG: v5` to find every site that relied on the old behavior
+- **Pre-commit hook included** (bash, no deps) — enforces AX-1 (presence) and AX-3 (tag allowlist). Soft-warn by default; `AX_STRICT=1` blocks.
+- **5-check lifecycle spec** ([`SPEC.md`](./SPEC.md)) — AX-1 presence, AX-2 SIG bump on behavior change, AX-3 tag allowlist, AX-4 no-filler SUM, AX-5 multi-concern split hint
+- **16-tag starter vocabulary** (CORE, PIPE, CONN, DOMAIN, INFRA, MEM, PROMPT, TEST, MIGR, SCRIPT, UTIL, SEC, LLM, IO, ENTRY, DAEMON) — adopt, extend, or replace
+- **Measured ~30 % reduction in context tokens** on agent triage tasks across a ~350-file production codebase
+- **Zero runtime cost, zero build step, zero dependencies.** One comment per file.
+- **MIT licensed.**
+
 ## The problem
 
-You pay a context tax every day. Claude Code and Codex CLI skim your repo the way a human does — scanning file lists, guessing purpose from names, opening a dozen files to find the right one. A filename like `handler.py` tells the agent nothing. So it opens the file. And the next one. And the next one.
+You pay a context tax every day. Claude Code and Codex CLI waste time and tokens opening files that are irrelevant to the task at hand, simply to figure out what those files do. A filename like `handler.py` tells the agent nothing, so it opens the file. And the next one. And the next one.
 
 The cost compounds. Triage tasks that should take one focused read turn into five speculative ones. Context windows fill with irrelevant code. Agents make worse decisions because they spent their attention budget on orientation, not reasoning.
 
 ## The insight
 
-Agents read code the way humans do — by skimming. But they are *flawless* at processing structured metadata. One dense, machine-readable line at the top of every file turns "guess what this is" into "know what this is." The agent orients from headers and only loads bodies when it needs the detail.
+Agents read codebases the way humans do — by skimming file lists. But they are *flawless* at processing structured metadata. One dense, machine-readable line at the top of every file turns "guess what this is" into "know what this is." The agent orients from headers and only loads bodies when it needs the detail.
 
-You are formatting your codebase for human eyes. The machines are doing most of the reading now. Give them headers.
+You are formatting your codebase for human eyes. Machines do most of the reading now. Give them headers.
 
-## The header
-
-Line 1 of every `.py` file:
-
-```python
-# AX: TAG | SUM: one-line machine-readable summary | SIG: version-tag
-```
-
-Three real examples:
+## Three real examples
 
 ```python
 # AX: CORE | SUM: spawn CLI Brain sessions with MCP via --mcp-config | SIG: v5
@@ -41,15 +45,6 @@ Three real examples:
 ```
 
 That is the entire proposal.
-
-## What you get
-
-- **One line per file.** Zero runtime cost. Zero build-step cost.
-- **Grep-friendly architecture.** `grep -l '^# AX: PIPE'` lists every pipeline. `grep -l '^# AX: CONN'` lists every external connector. Your system's shape becomes inspectable.
-- **Behaviour-version signal.** The SIG field bumps when behavior changes. Downstream consumers grep for `SIG: v5` to find every site that relied on the old version — no git blame required.
-- **Pre-commit hook included.** Checks AX-1 (presence) and AX-3 (tag in allowlist). Soft-warn by default, strict mode available.
-- **Full spec.** [`SPEC.md`](./SPEC.md) documents the five lifecycle checks (AX-1 through AX-5) any enforcer should implement.
-- MIT licensed. Zero dependencies.
 
 ## Grammar
 
@@ -101,7 +96,7 @@ To skip the header on a specific file (throwaway scripts, vendored code), add `#
 
 ## Verified usage
 
-Waypoint is running in production across a **~350 Python file codebase**. After six months of gradual adoption:
+Running in production across a **~350 Python file codebase**. After six months of gradual adoption:
 
 - **~30 % reduction in context tokens** on agent triage tasks. Agents skim headers instead of opening files.
 - `grep -l '^# AX: CONN'` became the canonical way to list every external connector — replacing a docs page that drifted within weeks of every refactor.
@@ -120,9 +115,9 @@ Each file has its own SIG history. No repo-wide version numbers.
 
 ## Companion skills
 
-Waypoint is part of a trio. Any of them work standalone; together they compound:
+ax-headers is part of a trio. Any of them work standalone; together they compound:
 
-- **[Rival](https://github.com/Oldrich333/full-review)** — adversarial code review. 0.80+ recall on bug detection vs 0.40 for the standard "parallel specialists" pattern. Detects header drift during review.
+- **[full-review](https://github.com/Oldrich333/full-review)** — adversarial code review. 0.80+ recall on bug detection vs 0.40 for the standard "parallel specialists" pattern. Detects header drift during review.
 - **[raisin](https://github.com/Oldrich333/raisin)** — dense Python authoring style for LLMs. ~50 % fewer tokens, same test coverage.
 
 ## License
